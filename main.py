@@ -47,32 +47,26 @@ async def get_agent_response(messages: list[dict[str, str]]) -> str:
     """Get response from OpenAI agent with web search capability."""
     try:
         # Use MCP server within async context manager
-        async with MCPServerSse(
-            name="Postgres MCP Server",
-            params={
-                "url": "http://localhost:8004/sse",
-            },
-        ) as mcp_server:
+        
             # Create agent with web search tool and MCP server
-            agent = Agent(
-                name="Web Search Assistant",
-                instructions="""You are a helpful assistant with web search capabilities and access to a PostgreSQL database. 
-                When users ask questions that require current information or specific facts, 
-                use the web_search tool to find relevant information before responding.
-                When users ask about database or data-related questions, you can use the database tools.
-                Always cite your sources when using search results.""",
-                model="gpt-4o-mini",
-                tools=[web_search],
-                mcp_servers=[mcp_server]
-            )
-            
-            # Convert message history to input string
-            user_messages = [msg["content"] for msg in messages if msg["role"] == "user"]
-            latest_query = user_messages[-1] if user_messages else ""
-            
-            # Run the agent
-            result = await Runner.run(starting_agent=agent, input=latest_query)
-            return result.final_output or ""
+        agent = Agent(
+            name="Web Search Assistant",
+            instructions="""You are a helpful assistant with web search capabilities and access to a PostgreSQL database. 
+            When users ask questions that require current information or specific facts, 
+            use the web_search tool to find relevant information before responding.
+            When users ask about database or data-related questions, you can use the database tools.
+            Always cite your sources when using search results.""",
+            model="gpt-4o-mini",
+            tools=[web_search],
+        )
+        
+        # Convert message history to input string
+        user_messages = [msg["content"] for msg in messages if msg["role"] == "user"]
+        latest_query = user_messages[-1] if user_messages else ""
+        
+        # Run the agent
+        result = await Runner.run(starting_agent=agent, input=latest_query)
+        return result.final_output or ""
         
     except Exception as e:
         st.error(f"Error calling OpenAI Agent: {e!s}")
